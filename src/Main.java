@@ -1,145 +1,289 @@
+// Importaciones necesarias para la interfaz gráfica y funcionalidades básicas
+import com.formdev.flatlaf.FlatDarkLaf;
 import com.formdev.flatlaf.FlatIntelliJLaf;
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.*;
 import java.util.ArrayList;
 import java.util.List;
 
+// Clase que representa un Libro con título y sinopsis
 class Libro {
     String titulo;
     String sinopsis;
 
+    // Constructor para crear un nuevo libro
     public Libro(String titulo, String sinopsis) {
         this.titulo = titulo;
         this.sinopsis = sinopsis;
     }
 
+    // Método para mostrar el título en listas y combobox
     @Override
     public String toString() {
         return titulo;
     }
 }
 
+// Clase que representa una Categoría con nombre y lista de libros
 class Categoria {
     String nombre;
     List<Libro> libros;
 
+    // Constructor para crear una nueva categoría
     public Categoria(String nombre) {
         this.nombre = nombre;
         this.libros = new ArrayList<>();
     }
 
+    // Método para agregar un libro a la categoría
     public void agregarLibro(Libro libro) {
         libros.add(libro);
     }
 
+    // Método para mostrar el nombre en combobox
     @Override
     public String toString() {
         return nombre;
     }
 }
 
+// Clase principal que extiende JFrame para la interfaz gráfica
 public class Main extends JFrame {
+    // Componentes de la interfaz
     private JComboBox<Categoria> comboCategorias;
     private JList<Libro> listaLibros;
     private DefaultListModel<Libro> modeloLibros;
-    private JTextArea areaSinopsis;
+    private DefaultListModel<Libro> modeloFavoritos;
+    private JList<Libro> listaFavoritos;
+    private JTextArea areaSinopsisCatalogo;   // Área de texto para sinopsis en pestaña Catálogo
+    private JTextArea areaSinopsisFavoritos;  // Área de texto para sinopsis en pestaña Favoritos
+    private JButton btnFavorito;              // Botón para agregar a favoritos
+    private JButton btnEliminarFavorito;      // Boton para eliminar de favoritos
+    private JButton btnModo;                  // Botón para cambiar tema claro/oscuro
+    private List<Categoria> categorias;       // Lista de categorías disponibles
+    private List<Libro> favoritos;            // Lista de libros favoritos
+    private boolean esModoOscuro = false;     // Bandera para controlar el tema actual
+    private JTabbedPane tabs;                 // Panel de pestañas (Catálogo/Favoritos)
+    private ImageIcon iconoClaro;             // Ícono para tema claro
+    private ImageIcon iconoOscuro;            // Ícono para tema oscuro
 
-    private JButton btnAgregar, btnEditar, btnEliminar;
-    private List<Categoria> categorias;
 
+    // Constructor principal
     public Main() {
-        setTitle(" Sistema de Gestión de Libros");
-        setSize(700, 500);
+        // Configuración básica de la ventana
+        setTitle("Catálogo de Libros");
+        setSize(800, 550);
         setDefaultCloseOperation(EXIT_ON_CLOSE);
         setLocationRelativeTo(null);
         setLayout(new BorderLayout(10, 10));
 
-        UIManager.put("Button.arc", 20);
-        UIManager.put("Component.arc", 10);
+        // Carga y redimensionamiento de íconos para el botón de tema
+        ImageIcon iconoClaroOriginal = new ImageIcon("src/icons/claro.png");
+        ImageIcon iconoOscuroOriginal = new ImageIcon("src/icons/oscuro.png");
+        Image imgClaro = iconoClaroOriginal.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+        Image imgOscuro = iconoOscuroOriginal.getImage().getScaledInstance(20, 20, Image.SCALE_SMOOTH);
+        iconoClaro = new ImageIcon(imgClaro);
+        iconoOscuro = new ImageIcon(imgOscuro);
 
-        // Inicializar datos
+        // Inicialización de listas
         categorias = cargarCategorias();
+        favoritos = new ArrayList<>();
 
+        // Configuración del botón para cambiar tema
+        btnModo = new JButton(iconoOscuro);
+        btnModo.setPreferredSize(new Dimension(30, 30));
+        btnModo.setContentAreaFilled(false);
+        btnModo.setBorder(BorderFactory.createEmptyBorder());
+        btnModo.setToolTipText("Cambiar tema");
+        btnModo.addActionListener(e -> cambiarModo());
+
+        // Configuración del combobox de categorías
         comboCategorias = new JComboBox<>(categorias.toArray(new Categoria[0]));
         comboCategorias.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         comboCategorias.addActionListener(e -> cargarLibros());
 
+        // Configuración de la lista de libros
         modeloLibros = new DefaultListModel<>();
         listaLibros = new JList<>(modeloLibros);
-        listaLibros.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
         listaLibros.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
-        areaSinopsis = new JTextArea();
-        areaSinopsis.setEditable(false);
-        areaSinopsis.setLineWrap(true);
-        areaSinopsis.setWrapStyleWord(true);
-        areaSinopsis.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        // Configuración de la lista de favoritos
+        modeloFavoritos = new DefaultListModel<>();
+        listaFavoritos = new JList<>(modeloFavoritos);
+        listaFavoritos.setFont(new Font("Segoe UI", Font.PLAIN, 14));
 
+        // Configuración del área de sinopsis para Catálogo
+        areaSinopsisCatalogo = new JTextArea();
+        areaSinopsisCatalogo.setEditable(false);
+        areaSinopsisCatalogo.setLineWrap(true);       // Ajuste de línea automático
+        areaSinopsisCatalogo.setWrapStyleWord(true);  // Cortar por palabras
+        areaSinopsisCatalogo.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        // Configuración del área de sinopsis para Favoritos
+        areaSinopsisFavoritos = new JTextArea();
+        areaSinopsisFavoritos.setEditable(false);
+        areaSinopsisFavoritos.setLineWrap(true);
+        areaSinopsisFavoritos.setWrapStyleWord(true);
+        areaSinopsisFavoritos.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+
+        // Listener para mostrar sinopsis al seleccionar libro en Catálogo
         listaLibros.addListSelectionListener(e -> {
-            Libro libro = listaLibros.getSelectedValue();
-            areaSinopsis.setText(libro != null ? libro.sinopsis : "");
+            if (!e.getValueIsAdjusting()) {
+                Libro libro = listaLibros.getSelectedValue();
+                areaSinopsisCatalogo.setText(libro != null ? libro.sinopsis : "");
+            }
         });
 
-        // Botones con estilo moderno
-        btnAgregar = crearBoton(" Agregar Libro");
-        btnEditar = crearBoton(" Editar Libro");
-        btnEliminar = crearBoton("️ Eliminar Libro");
+        // Listener para mostrar sinopsis al seleccionar libro en Favoritos
+        listaFavoritos.addListSelectionListener(e -> {
+            if (!e.getValueIsAdjusting()) {
+                Libro libro = listaFavoritos.getSelectedValue();
+                areaSinopsisFavoritos.setText(libro != null ? libro.sinopsis : "");
+            }
+        });
 
-        btnAgregar.addActionListener(e -> agregarLibro());
-        btnEditar.addActionListener(e -> editarLibro());
-        btnEliminar.addActionListener(e -> eliminarLibro());
+        // Configuración del botón para agregar a favoritos
+        btnFavorito = new JButton("Agregar a Favoritos");
+        btnFavorito.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        btnFavorito.addActionListener(e -> agregarAFavoritos());
 
+        // Botón para eliminar de favoritos
+        btnEliminarFavorito = new JButton("Eliminar de Favoritos");
+        btnEliminarFavorito.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        btnEliminarFavorito.addActionListener(e -> eliminarDeFavoritos());
+
+        // Configuración del panel de pestañas
+        tabs = new JTabbedPane();
+        tabs.addTab("Catálogo", crearPanelCatalogo());
+        tabs.addTab("Favoritos", crearPanelFavoritos());
+
+        // Panel superior con categoría y botón de tema
         JPanel panelTop = new JPanel(new BorderLayout(10, 10));
-        panelTop.setBorder(BorderFactory.createEmptyBorder(10, 10, 0, 10));
-        panelTop.add(new JLabel("Categoría:", JLabel.LEFT), BorderLayout.WEST);
-        panelTop.add(comboCategorias, BorderLayout.CENTER);
+        panelTop.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
 
-        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 20, 10));
-        panelBotones.add(btnAgregar);
-        panelBotones.add(btnEditar);
-        panelBotones.add(btnEliminar);
+        JPanel panelCategoria = new JPanel(new BorderLayout());
+        panelCategoria.add(new JLabel("Categoría:"), BorderLayout.WEST);
+        panelCategoria.add(comboCategorias, BorderLayout.CENTER);
 
-        JSplitPane splitPane = new JSplitPane(JSplitPane.HORIZONTAL_SPLIT,
-                new JScrollPane(listaLibros), new JScrollPane(areaSinopsis));
-        splitPane.setDividerLocation(300);
-        splitPane.setResizeWeight(0.4);
+        JPanel panelTopRight = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+        panelTopRight.add(btnModo);
 
+        panelTop.add(panelCategoria, BorderLayout.CENTER);
+        panelTop.add(panelTopRight, BorderLayout.EAST);
+
+        // Agregar componentes a la ventana principal
         add(panelTop, BorderLayout.NORTH);
-        add(splitPane, BorderLayout.CENTER);
-        add(panelBotones, BorderLayout.SOUTH);
+        add(tabs, BorderLayout.CENTER);
 
+        // Cargar libros iniciales y mostrar ventana
         cargarLibros();
         setVisible(true);
     }
 
-    private JButton crearBoton(String texto) {
-        JButton btn = new JButton(texto);
-        btn.setFont(new Font("Segoe UI", Font.PLAIN, 14));
-        btn.setFocusPainted(false);
-        btn.setBackground(new Color(60, 130, 200));
-        btn.setForeground(Color.WHITE);
-        btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
-        return btn;
+    // Método para crear el panel del Catálogo
+    private JPanel crearPanelCatalogo() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(new JScrollPane(listaLibros), BorderLayout.CENTER);
+
+        // Panel inferior con sinopsis y botón
+        JPanel panelInferior = new JPanel(new BorderLayout());
+        panelInferior.setPreferredSize(new Dimension(0, 200)); // Altura fija de 200px
+
+        panelInferior.add(new JScrollPane(areaSinopsisCatalogo), BorderLayout.CENTER);
+        panelInferior.add(btnFavorito, BorderLayout.SOUTH);
+
+        panel.add(panelInferior, BorderLayout.SOUTH);
+        return panel;
     }
 
+    // Método para crear el panel de Favoritos
+    private JPanel crearPanelFavoritos() {
+        JPanel panel = new JPanel(new BorderLayout());
+        panel.add(new JScrollPane(listaFavoritos), BorderLayout.CENTER);
+
+        // Panel para sinopsis y botón
+        JPanel panelInferior = new JPanel(new BorderLayout());
+        panelInferior.setPreferredSize(new Dimension(0, 200));
+
+        panelInferior.add(new JScrollPane(areaSinopsisFavoritos), BorderLayout.CENTER);
+
+        // Panel para el botón (centrado)
+        JPanel panelBoton = new JPanel(new FlowLayout(FlowLayout.CENTER));
+        panelBoton.add(btnEliminarFavorito);
+        panelInferior.add(panelBoton, BorderLayout.SOUTH);
+
+        panel.add(panelInferior, BorderLayout.SOUTH);
+        return panel;
+    }
+
+    // Método para eliminar de favoritos
+    private void eliminarDeFavoritos() {
+        Libro libro = listaFavoritos.getSelectedValue();
+        if (libro != null) {
+            favoritos.remove(libro);
+            modeloFavoritos.removeElement(libro);
+            areaSinopsisFavoritos.setText("");
+            JOptionPane.showMessageDialog(this, "Libro eliminado de favoritos");
+        } else {
+            JOptionPane.showMessageDialog(this, "Selecciona un libro para eliminar", "Advertencia", JOptionPane.WARNING_MESSAGE);
+        }
+    }
+
+    // Método para cambiar entre temas claro/oscuro
+    private void cambiarModo() {
+        try {
+            if (esModoOscuro) {
+                UIManager.setLookAndFeel(new FlatIntelliJLaf());
+                btnModo.setIcon(iconoOscuro);
+            } else {
+                UIManager.setLookAndFeel(new FlatDarkLaf());
+                btnModo.setIcon(iconoClaro);
+            }
+            esModoOscuro = !esModoOscuro;
+            SwingUtilities.updateComponentTreeUI(this);
+        } catch (Exception ex) {
+            ex.printStackTrace();
+        }
+    }
+
+    // Método para cargar categorías y libros de ejemplo
     private List<Categoria> cargarCategorias() {
         List<Categoria> lista = new ArrayList<>();
 
+        // Categoría Ficción
         Categoria ficcion = new Categoria("Ficción");
         ficcion.agregarLibro(new Libro("Cien años de soledad", "Historia de la familia Buendía en Macondo."));
         ficcion.agregarLibro(new Libro("1984", "Sociedad distópica bajo vigilancia total."));
         lista.add(ficcion);
 
-        Categoria tecnologia = new Categoria("Tecnología");
-        tecnologia.agregarLibro(new Libro("Clean Code", "Principios para escribir buen código."));
-        lista.add(tecnologia);
+        // Categoría Fantasia
+        Categoria fantasia = new Categoria("Fantasía");
+        fantasia.agregarLibro(new Libro("El Señor de los Anillos", "Un hobbit debe destruir un anillo maligno antes de que caiga en manos del Señor Oscuro Sauron."));
+        fantasia.agregarLibro(new Libro("Harry Potter y la piedra filosofal"," Un niño descubre que es un mago y comienza su educación en la escuela Hogwarts."));
+        lista.add(fantasia);
 
+        // Categoría Terror
         Categoria terror = new Categoria("Terror");
+        terror.agregarLibro(new Libro("It", "Una entidad malévola que se alimenta del terror de los niños."));
+        terror.agregarLibro(new Libro("El exorcista","Una niña es poseída por un demonio, y dos sacerdotes intentan salvarla mediante un exorcismo."));
+        terror.agregarLibro(new Libro("Frankenstein","Un científico crea una criatura con partes de cadáveres, pero su creación se rebela contra él."));
         lista.add(terror);
+
+        // Categoría Romance
+        Categoria romance = new Categoria("Romance");
+        romance.agregarLibro(new Libro("Orgullo y prejuicio", "Elizabeth Bennet y el señor Darcy superan sus diferencias sociales y personales para encontrar el amor."));
+        romance.agregarLibro(new Libro("Cumbres Borrascosas", "Una historia de amor obsesivo y venganza en los sombríos páramos de Yorkshire."));
+        romance.agregarLibro(new Libro("Bajo la misma estrella","Dos adolescentes con cáncer se enamoran y buscan darle sentido a sus vidas."));
+        lista.add(romance);
+
+
+
+
+
         return lista;
     }
 
+    // Método para cargar libros según categoría seleccionada
     private void cargarLibros() {
         Categoria categoria = (Categoria) comboCategorias.getSelectedItem();
         modeloLibros.clear();
@@ -148,57 +292,28 @@ public class Main extends JFrame {
                 modeloLibros.addElement(libro);
             }
         }
-        areaSinopsis.setText("");
+        areaSinopsisCatalogo.setText("");
     }
 
-    private void agregarLibro() {
-        Categoria categoria = (Categoria) comboCategorias.getSelectedItem();
-        if (categoria == null) return;
-
-        String titulo = JOptionPane.showInputDialog(this, "Título del libro:");
-        if (titulo == null || titulo.trim().isEmpty()) return;
-
-        String sinopsis = JOptionPane.showInputDialog(this, "Sinopsis del libro:");
-        if (sinopsis == null) sinopsis = "";
-
-        categoria.agregarLibro(new Libro(titulo.trim(), sinopsis.trim()));
-        cargarLibros();
-    }
-
-    private void editarLibro() {
-        Categoria categoria = (Categoria) comboCategorias.getSelectedItem();
+    // Método para agregar libro a favoritos
+    private void agregarAFavoritos() {
         Libro libro = listaLibros.getSelectedValue();
-        if (categoria == null || libro == null) return;
-
-        String nuevoTitulo = JOptionPane.showInputDialog(this, "Editar título:", libro.titulo);
-        if (nuevoTitulo == null || nuevoTitulo.trim().isEmpty()) return;
-
-        String nuevaSinopsis = JOptionPane.showInputDialog(this, "Editar sinopsis:", libro.sinopsis);
-        if (nuevaSinopsis == null) nuevaSinopsis = "";
-
-        libro.titulo = nuevoTitulo.trim();
-        libro.sinopsis = nuevaSinopsis.trim();
-        cargarLibros();
-    }
-
-    private void eliminarLibro() {
-        Categoria categoria = (Categoria) comboCategorias.getSelectedItem();
-        Libro libro = listaLibros.getSelectedValue();
-        if (categoria == null || libro == null) return;
-
-        int confirm = JOptionPane.showConfirmDialog(this, "¿Eliminar libro seleccionado?", "Confirmar", JOptionPane.YES_NO_OPTION);
-        if (confirm == JOptionPane.YES_OPTION) {
-            categoria.libros.remove(libro);
-            cargarLibros();
+        if (libro != null && !favoritos.contains(libro)) {
+            favoritos.add(libro);
+            modeloFavoritos.addElement(libro);
+            JOptionPane.showMessageDialog(this, "Libro agregado a favoritos");
         }
     }
 
+    // Método principal
     public static void main(String[] args) {
         try {
-            FlatIntelliJLaf.setup();
+            // Configurar look and feel FlatLaf (tema claro por defecto)
+            UIManager.setLookAndFeel(new FlatIntelliJLaf());
         } catch (Exception e) {
             System.out.println("No se pudo aplicar FlatLaf");
         }
+        // Ejecutar la interfaz gráfica en el hilo de eventos
         SwingUtilities.invokeLater(Main::new);
     }
 }
