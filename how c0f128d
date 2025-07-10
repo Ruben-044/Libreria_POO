@@ -1,0 +1,9 @@
+[33m7a31300[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{0}: reset: moving to HEAD
+[33m7a31300[m[33m ([m[1;36mHEAD -> [m[1;32mmain[m[33m, [m[1;31morigin/main[m[33m)[m HEAD@{1}: reset: moving to origin/main
+[33mc0f128d[m[33m ([m[1;32mmis-cambios-temporales[m[33m)[m HEAD@{2}: checkout: moving from mis-cambios-temporales to main
+[33mc0f128d[m[33m ([m[1;32mmis-cambios-temporales[m[33m)[m HEAD@{3}: checkout: moving from main to mis-cambios-temporales
+[33mc0f128d[m[33m ([m[1;32mmis-cambios-temporales[m[33m)[m HEAD@{4}: reset: moving to HEAD
+[33mc0f128d[m[33m ([m[1;32mmis-cambios-temporales[m[33m)[m HEAD@{5}: commit: Versión Última del proyecto
+[33mda091a9[m HEAD@{6}: pull origin main --allow-unrelated-histories: Merge made by the 'ort' strategy.
+[33m55f1064[m HEAD@{7}: Branch: renamed refs/heads/master to refs/heads/main
+[33m55f1064[m HEAD@{9}: commit (initial): Primer commit de prueba
