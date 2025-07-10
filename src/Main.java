@@ -60,13 +60,15 @@ public class Main extends JFrame {
     private JButton btnFavorito;              // Botón para agregar a favoritos
     private JButton btnEliminarFavorito;      // Boton para eliminar de favoritos
     private JButton btnModo;                  // Botón para cambiar tema claro/oscuro
+    private JButton btnAgregarLibro;          // Botón para agregar nuevo libro
+    private JButton btnEditarLibro;           // Botón para editar libro existente
+    private JButton btnEliminarLibro;         // Botón para eliminar libro
     private List<Categoria> categorias;       // Lista de categorías disponibles
     private List<Libro> favoritos;            // Lista de libros favoritos
     private boolean esModoOscuro = false;     // Bandera para controlar el tema actual
     private JTabbedPane tabs;                 // Panel de pestañas (Catálogo/Favoritos)
     private ImageIcon iconoClaro;             // Ícono para tema claro
     private ImageIcon iconoOscuro;            // Ícono para tema oscuro
-
 
     // Constructor principal
     public Main() {
@@ -152,6 +154,19 @@ public class Main extends JFrame {
         btnEliminarFavorito.setFont(new Font("Segoe UI", Font.PLAIN, 14));
         btnEliminarFavorito.addActionListener(e -> eliminarDeFavoritos());
 
+        // Configuración de los nuevos botones para gestión de libros
+        btnAgregarLibro = new JButton("Agregar Libro");
+        btnAgregarLibro.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        btnAgregarLibro.addActionListener(e -> agregarLibro());
+
+        btnEditarLibro = new JButton("Editar Libro");
+        btnEditarLibro.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        btnEditarLibro.addActionListener(e -> editarLibro());
+
+        btnEliminarLibro = new JButton("Eliminar Libro");
+        btnEliminarLibro.setFont(new Font("Segoe UI", Font.PLAIN, 14));
+        btnEliminarLibro.addActionListener(e -> eliminarLibro());
+
         // Configuración del panel de pestañas
         tabs = new JTabbedPane();
         tabs.addTab("Catálogo", crearPanelCatalogo());
@@ -185,13 +200,20 @@ public class Main extends JFrame {
         JPanel panel = new JPanel(new BorderLayout());
         panel.add(new JScrollPane(listaLibros), BorderLayout.CENTER);
 
-        // Panel inferior con sinopsis y botón
+        // Panel inferior con sinopsis y botones
         JPanel panelInferior = new JPanel(new BorderLayout());
         panelInferior.setPreferredSize(new Dimension(0, 200)); // Altura fija de 200px
 
         panelInferior.add(new JScrollPane(areaSinopsisCatalogo), BorderLayout.CENTER);
-        panelInferior.add(btnFavorito, BorderLayout.SOUTH);
 
+        // Panel para los botones (agregar, editar, eliminar y favorito)
+        JPanel panelBotones = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 5));
+        panelBotones.add(btnAgregarLibro);
+        panelBotones.add(btnEditarLibro);
+        panelBotones.add(btnEliminarLibro);
+        panelBotones.add(btnFavorito);
+
+        panelInferior.add(panelBotones, BorderLayout.SOUTH);
         panel.add(panelInferior, BorderLayout.SOUTH);
         return panel;
     }
@@ -276,10 +298,6 @@ public class Main extends JFrame {
         romance.agregarLibro(new Libro("Bajo la misma estrella","Dos adolescentes con cáncer se enamoran y buscan darle sentido a sus vidas."));
         lista.add(romance);
 
-
-
-
-
         return lista;
     }
 
@@ -302,6 +320,116 @@ public class Main extends JFrame {
             favoritos.add(libro);
             modeloFavoritos.addElement(libro);
             JOptionPane.showMessageDialog(this, "Libro agregado a favoritos");
+        }
+    }
+
+    // Método para agregar un nuevo libro
+    private void agregarLibro() {
+        Categoria categoriaActual = (Categoria) comboCategorias.getSelectedItem();
+        if (categoriaActual == null) {
+            JOptionPane.showMessageDialog(this, "Selecciona una categoría primero", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JTextField tituloField = new JTextField();
+        JTextArea sinopsisArea = new JTextArea(5, 20);
+        sinopsisArea.setLineWrap(true);
+        sinopsisArea.setWrapStyleWord(true);
+
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.add(new JLabel("Título:"), BorderLayout.NORTH);
+        panel.add(tituloField, BorderLayout.CENTER);
+        panel.add(new JLabel("Sinopsis:"), BorderLayout.WEST);
+        panel.add(new JScrollPane(sinopsisArea), BorderLayout.SOUTH);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Agregar Nuevo Libro",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            String titulo = tituloField.getText().trim();
+            String sinopsis = sinopsisArea.getText().trim();
+
+            if (!titulo.isEmpty()) {
+                Libro nuevoLibro = new Libro(titulo, sinopsis);
+                categoriaActual.agregarLibro(nuevoLibro);
+                modeloLibros.addElement(nuevoLibro);
+                JOptionPane.showMessageDialog(this, "Libro agregado exitosamente");
+            } else {
+                JOptionPane.showMessageDialog(this, "El título no puede estar vacío", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    // Método para editar un libro existente
+    private void editarLibro() {
+        Libro libroSeleccionado = listaLibros.getSelectedValue();
+        if (libroSeleccionado == null) {
+            JOptionPane.showMessageDialog(this, "Selecciona un libro para editar", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        JTextField tituloField = new JTextField(libroSeleccionado.titulo);
+        JTextArea sinopsisArea = new JTextArea(libroSeleccionado.sinopsis, 5, 20);
+        sinopsisArea.setLineWrap(true);
+        sinopsisArea.setWrapStyleWord(true);
+
+        JPanel panel = new JPanel(new BorderLayout(5, 5));
+        panel.add(new JLabel("Título:"), BorderLayout.NORTH);
+        panel.add(tituloField, BorderLayout.CENTER);
+        panel.add(new JLabel("Sinopsis:"), BorderLayout.WEST);
+        panel.add(new JScrollPane(sinopsisArea), BorderLayout.SOUTH);
+
+        int result = JOptionPane.showConfirmDialog(this, panel, "Editar Libro",
+                JOptionPane.OK_CANCEL_OPTION, JOptionPane.PLAIN_MESSAGE);
+
+        if (result == JOptionPane.OK_OPTION) {
+            String nuevoTitulo = tituloField.getText().trim();
+            String nuevaSinopsis = sinopsisArea.getText().trim();
+
+            if (!nuevoTitulo.isEmpty()) {
+                libroSeleccionado.titulo = nuevoTitulo;
+                libroSeleccionado.sinopsis = nuevaSinopsis;
+
+                // Actualizar la lista y favoritos si está allí
+                modeloLibros.set(modeloLibros.indexOf(libroSeleccionado), libroSeleccionado);
+
+                if (favoritos.contains(libroSeleccionado)) {
+                    int index = favoritos.indexOf(libroSeleccionado);
+                    favoritos.set(index, libroSeleccionado);
+                    modeloFavoritos.set(index, libroSeleccionado);
+                }
+
+                JOptionPane.showMessageDialog(this, "Libro actualizado exitosamente");
+            } else {
+                JOptionPane.showMessageDialog(this, "El título no puede estar vacío", "Error", JOptionPane.ERROR_MESSAGE);
+            }
+        }
+    }
+
+    // Método para eliminar un libro
+    private void eliminarLibro() {
+        Libro libroSeleccionado = listaLibros.getSelectedValue();
+        if (libroSeleccionado == null) {
+            JOptionPane.showMessageDialog(this, "Selecciona un libro para eliminar", "Advertencia", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int confirmacion = JOptionPane.showConfirmDialog(this,
+                "¿Estás seguro de eliminar el libro '" + libroSeleccionado.titulo + "'?",
+                "Confirmar eliminación", JOptionPane.YES_NO_OPTION);
+
+        if (confirmacion == JOptionPane.YES_OPTION) {
+            Categoria categoriaActual = (Categoria) comboCategorias.getSelectedItem();
+            categoriaActual.libros.remove(libroSeleccionado);
+            modeloLibros.removeElement(libroSeleccionado);
+
+            // Eliminar también de favoritos si está allí
+            if (favoritos.contains(libroSeleccionado)) {
+                favoritos.remove(libroSeleccionado);
+                modeloFavoritos.removeElement(libroSeleccionado);
+            }
+
+            JOptionPane.showMessageDialog(this, "Libro eliminado exitosamente");
         }
     }
 
